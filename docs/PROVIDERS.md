@@ -50,7 +50,7 @@ separately and always work.
 
 | Capability | Variables the code reads | Status |
 | --- | --- | --- |
-| Stock media search/import | `PEXELS_API_KEY` (selects the implemented Pexels adapter; `STOCK_PROVIDER=pexels` names it explicitly, any other `STOCK_PROVIDER` value has no adapter) | **Implemented** (Pexels Videos API). Configured exactly when `PEXELS_API_KEY` is set. |
+| Stock media search/import | `PEXELS_API_KEY` (selects the implemented Pexels adapter) or `PIXABAY_API_KEY` (selects the implemented Pixabay adapter when no Pexels key is set); `STOCK_PROVIDER=pexels` / `STOCK_PROVIDER=pixabay` name a provider explicitly, any other `STOCK_PROVIDER` value has no adapter | **Implemented** (Pexels Videos API + Pixabay Videos API). Configured exactly when a key for the selected provider is set. |
 | AI media generation | `AI_GENERATION_PROVIDER`, `AI_GENERATION_API_KEY` | Adapter `implemented: false`. |
 | Background removal | `BACKGROUND_REMOVAL_PROVIDER`, `BACKGROUND_REMOVAL_API_KEY`, or `BACKGROUND_MODEL_PATH` (local segmentation model) | Adapter `implemented: false`. |
 
@@ -71,6 +71,21 @@ persisted FAILED job for imports. `PEXELS_API_BASE` overrides the
 API base for testing/sandbox only (default
 `https://api.pexels.com`) — the e2e suite points it at a local mock
 and exercises the real adapter code against it.
+
+**Stock media — Pixabay (real adapter, fallback):** with
+`PIXABAY_API_KEY` set (a **free** key from pixabay.com/api) and no
+`PEXELS_API_KEY` set, provider search and import run against the
+official Pixabay Videos API through the same routes, job pipeline
+and result shape as the Pexels adapter. (Pexels keeps precedence
+when both keys are set, unless `STOCK_PROVIDER=pixabay` names
+Pixabay explicitly.) Imported assets persist provider (`pixabay`)
++ provider asset id, licence name (`Pixabay Content License`),
+attribution (`Video by <creator> on Pixabay`) on the asset, and
+the video's Pixabay page URL as the source URL of its licence
+record. With neither key set, the `422 CONFIGURATION_ERROR` names
+both missing keys. `PIXABAY_API_BASE` overrides the API base for
+testing/sandbox only (default `https://pixabay.com/api`) — the e2e
+suite points it at a local mock the same way as Pexels.
 
 ## URL import — yt-dlp (`server/src/urlImport.ts`)
 
@@ -148,6 +163,7 @@ media) and all FFmpeg-based enhancement.
 | Integration | Cost to go live | What the owner must do |
 | --- | --- | --- |
 | Stock B-roll (Pexels) | Free API key | Create a free Pexels API key at pexels.com/api and set `PEXELS_API_KEY`. Code-complete now. |
+| Stock B-roll (Pixabay, fallback) | Free API key | Create a free Pixabay API key at pixabay.com/api and set `PIXABAY_API_KEY`. Used when no Pexels key is set. Code-complete now. |
 | URL import (yt-dlp) | Free, no key | Install the open-source `yt-dlp` binary on the server (or set `YTDLP_BIN` to its path). Code-complete now; some platforms block server IPs per video (see URL import above). |
 | Transactional email (SMTP) | Free tier | Create a free SMTP account — e.g. **Brevo** (free, 300 emails/day) or **Resend** (free tier) — and set `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM`. Code-complete now (see Email below). |
 | YouTube / Instagram / TikTok publishing + analytics | Free developer apps | Create the **owner's own** developer apps (Google Cloud / Meta / TikTok) with his logins and pass each platform's review (Google verification, Meta App Review, TikTok audit). The adapters are **code-complete already**; only the owner's credentials + approvals are missing. |

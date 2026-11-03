@@ -132,9 +132,13 @@ export const config = {
   //
   // Stock media: the Pexels adapter in src/broll.ts IS implemented
   // (free-integrations pass) — it activates when PEXELS_API_KEY is
-  // set (a free key from pexels.com/api). STOCK_PROVIDER may name
-  // "pexels" explicitly; naming any OTHER stock provider keeps the
-  // honest not-implemented state, because no adapter exists for it.
+  // set (a free key from pexels.com/api). A second implemented
+  // adapter, Pixabay, activates on PIXABAY_API_KEY when no Pexels
+  // key is set (Pexels new-key issuance is sometimes paused, so
+  // Pixabay keeps stock imports available meanwhile). STOCK_PROVIDER
+  // may name "pexels" or "pixabay" explicitly; naming any OTHER
+  // stock provider keeps the honest not-implemented state, because
+  // no adapter exists for it.
   // AI generation and background removal remain interface stubs
   // (implemented: false — no genuinely free production API exists
   // for either), so dropping a key into the environment is NOT
@@ -150,6 +154,11 @@ export const config = {
     // lets the e2e suite point the REAL Pexels adapter at a local
     // mock. Default is the official production endpoint.
     pexelsApiBase: (process.env.PEXELS_API_BASE ?? "https://api.pexels.com").replace(/\/$/, ""),
+    pixabayApiKey: process.env.PIXABAY_API_KEY ?? "",
+    // Same testing/sandbox override pattern as PEXELS_API_BASE:
+    // lets the e2e suite point the REAL Pixabay adapter at a local
+    // mock. Default is the official production endpoint.
+    pixabayApiBase: (process.env.PIXABAY_API_BASE ?? "https://pixabay.com/api").replace(/\/$/, ""),
     generationProvider: (process.env.AI_GENERATION_PROVIDER ?? "").trim().toLowerCase(),
     generationApiKey: process.env.AI_GENERATION_API_KEY ?? "",
     backgroundProvider: (process.env.BACKGROUND_REMOVAL_PROVIDER ?? "").trim().toLowerCase(),
@@ -263,6 +272,9 @@ export const stockProviderConfigured = Boolean(
 /** Free-integrations pass: the implemented Pexels stock adapter is
  *  configured exactly when its (free) API key is present. */
 export const pexelsConfigured = Boolean(config.phase8.pexelsApiKey);
+/** The implemented Pixabay stock adapter is configured exactly
+ *  when its (free) API key is present. */
+export const pixabayConfigured = Boolean(config.phase8.pixabayApiKey);
 export const generationProviderConfigured = Boolean(
   config.phase8.generationProvider && config.phase8.generationApiKey,
 );

@@ -15,12 +15,13 @@
 //    A window with no genuine overlap produces NO recommendation —
 //    filler is never invented. Nothing is inserted into a timeline
 //    without an explicit accept call.
-//  - External providers: stock media has ONE real adapter — Pexels
-//    (free API key, PEXELS_API_KEY) — which searches the official
-//    Pexels Videos API and downloads the chosen file into the media
-//    pipeline with its licence/credit metadata. AI generation and
-//    background removal remain unimplemented adapters (no genuinely
-//    free production API exists for either). With NO configuration,
+//  - External providers: stock media has TWO real adapters — Pexels
+//    (free API key, PEXELS_API_KEY) and Pixabay (PIXABAY_API_KEY,
+//    selected when no Pexels key is set) — which search the official
+//    Pexels / Pixabay Videos APIs and download the chosen file into
+//    the media pipeline with its licence/credit metadata. AI
+//    generation and background removal remain unimplemented adapters
+//    (no genuinely free production API exists for either). With NO configuration,
 //    provider operations fail honestly with 422 CONFIGURATION_ERROR
 //    and a persisted FAILED job row, and /api/phase8/status says
 //    exactly what is missing. No scraping, no simulation, no fake
@@ -45,6 +46,7 @@ import {
   config,
   generationProviderConfigured,
   pexelsConfigured,
+  pixabayConfigured,
   stockProviderConfigured,
 } from "./config.js";
 import { notify, recordUsage as recordLedgerUsage } from "./accountCore.js";
@@ -128,8 +130,10 @@ function parseJson<T>(raw: string | null, fallback: T): T {
 }
 
 // ---- provider adapters -------------------------------------------------------
-// Stock media has ONE real adapter in this build: Pexels (below),
-// gated on the free PEXELS_API_KEY. The generation and background
+// Stock media has TWO real adapters in this build: Pexels (below),
+// gated on the free PEXELS_API_KEY, and Pixabay, gated on
+// PIXABAY_API_KEY and selected when no Pexels key is set. The
+// generation and background
 // adapters further down are still INTERFACE STUBS: each carries
 // implemented: false and its operations throw unconditionally. An
 // adapter reports configured = (environment names a provider +
@@ -313,11 +317,62 @@ async function pexelsApi(pathname: string): Promise<unknown> {
   return res.json();
 }
 
+/** Stream a resolved stock download URL to disk, refusing more
+ *  than maxBytes (shared by the Pexels and Pixabay adapters — the
+ *  download mechanics are identical; only search/fetch differ). */
+async function downloadStockFileToDisk(
+  downloadUrl: string,
+  destPath: string,
+  maxBytes: number,
+): Promise<number> {
+  let res: globalThis.Response;
+  try {
+    res = await fetch(downloadUrl, { signal: AbortSignal.timeout(180_000) });
+  } catch (err) {
+    throw new StockProviderError(
+      `Downloading the stock file failed (${err instanceof Error ? err.message : "network error"}).`,
+      0,
+    );
+  }
+  if (!res.ok || !res.body) {
+    throw new StockProviderError(
+      `Downloading the stock file failed (HTTP ${res.status}).`,
+      res.status,
+    );
+  }
+  const declared = Number(res.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new StockProviderError(
+      `The stock file is larger than the ${Math.round(maxBytes / (1024 * 1024))} MB import limit.`,
+      413,
+    );
+  }
+  let bytes = 0;
+  const counter = new Transform({
+    transform(chunk: Buffer, _enc, cb) {
+      bytes += chunk.length;
+      if (bytes > maxBytes) {
+        cb(
+          new StockProviderError(
+            `The stock file is larger than the ${Math.round(maxBytes / (1024 * 1024))} MB import limit.`,
+            413,
+          ),
+        );
+      } else {
+        this.push(chunk);
+        cb();
+      }
+    },
+  });
+  await pipeline(Readable.fromWeb(res.body), counter, fs.createWriteStream(destPath));
+  return bytes;
+}
+
 function createPexelsStockAdapter(): StockProviderAdapter {
   const configured = pexelsConfigured;
   const detail = configured
     ? `Stock provider "pexels" is configured.`
-    : "No licensed stock-media provider is configured. Set PEXELS_API_KEY (server-side) to enable licensed stock imports from Pexels — a free API key is available at pexels.com/api. CLIPFORGE never scrapes stock sites.";
+    : "No licensed stock-media provider is configured. Set PEXELS_API_KEY (server-side) to enable licensed stock imports from Pexels — a free API key is available at pexels.com/api — or set PIXABAY_API_KEY to enable Pixabay instead (free key at pixabay.com/api). CLIPFORGE never scrapes stock sites.";
   const requireConfigured = (): void => {
     if (!configured) throw new ConfigurationError(detail);
   };
@@ -365,57 +420,233 @@ function createPexelsStockAdapter(): StockProviderAdapter {
     },
     async downloadToFile(downloadUrl: string, destPath: string, maxBytes: number): Promise<number> {
       requireConfigured();
-      let res: globalThis.Response;
-      try {
-        res = await fetch(downloadUrl, { signal: AbortSignal.timeout(180_000) });
-      } catch (err) {
+      return downloadStockFileToDisk(downloadUrl, destPath, maxBytes);
+    },
+  };
+}
+
+// ---- Pixabay stock adapter (real) -----------------------------------------
+// Official Pixabay API (https://pixabay.com/api/videos/): unlike
+// Pexels, the key travels as the `key` QUERY PARAMETER — there is
+// no header auth — so request URLs must never be logged or echoed
+// into an error string; every error below is built without the URL
+// and upstream text passes through a redactor that strips the key
+// if it ever appears. Search and single-video fetch are the SAME
+// endpoint: /videos/?q=... searches, /videos/?id=... returns the
+// one video inside `hits`. A hit carries size VARIANTS (large /
+// medium / small / tiny) instead of Pexels' flat file list, and
+// the credit fields are `user` + `pageURL`. Imported assets
+// persist the Pixabay Content License name, the "Video by
+// <creator> on Pixabay" attribution and the video's Pixabay page
+// URL, exactly as the Pexels path persists its credit metadata.
+
+const PIXABAY_LICENSE_NAME = "Pixabay Content License";
+
+interface PixabayVariantRaw {
+  url?: string;
+  width?: number;
+  height?: number;
+  size?: number;
+}
+
+interface PixabayVideoRaw {
+  id?: number;
+  pageURL?: string;
+  type?: string;
+  tags?: string;
+  duration?: number;
+  user_id?: number;
+  user?: string;
+  videos?: {
+    large?: PixabayVariantRaw;
+    medium?: PixabayVariantRaw;
+    small?: PixabayVariantRaw;
+    tiny?: PixabayVariantRaw;
+  };
+}
+
+function pixabayTitle(raw: PixabayVideoRaw): string {
+  // Pixabay videos carry no title field either; the page URL slug
+  // is the closest human-readable name
+  // (".../videos/forest-river-flowing-123456/").
+  const slug = (typeof raw.pageURL === "string" ? raw.pageURL : "").split("/").filter(Boolean).pop() ?? "";
+  const words = slug.replace(/-\d+$/, "").replace(/^\d+-/, "").replace(/-/g, " ").trim();
+  if (words) return words.charAt(0).toUpperCase() + words.slice(1);
+  if (typeof raw.tags === "string") {
+    const first = raw.tags.split(",")[0]?.trim() ?? "";
+    if (first) return first.charAt(0).toUpperCase() + first.slice(1);
+  }
+  return `Pixabay video ${raw.id ?? ""}`.trim();
+}
+
+function pixabayCreatorName(raw: PixabayVideoRaw): string | null {
+  return typeof raw.user === "string" && raw.user.trim() ? raw.user.trim() : null;
+}
+
+function pixabayCreatorUrl(raw: PixabayVideoRaw): string | null {
+  const name = pixabayCreatorName(raw);
+  if (!name || typeof raw.user_id !== "number") return null;
+  // Pixabay's canonical contributor URL shape.
+  return `https://pixabay.com/users/${encodeURIComponent(name)}-${raw.user_id}/`;
+}
+
+function pixabayAttribution(raw: PixabayVideoRaw): string {
+  return `Video by ${pixabayCreatorName(raw) ?? "a Pixabay creator"} on Pixabay`;
+}
+
+interface PixabayVariant {
+  url: string;
+  width: number;
+  height: number | null;
+}
+
+/** The downloadable MP4 variants of one hit (entries without a
+ *  real .mp4 URL or a width are unusable and dropped). */
+function pixabayVariants(raw: PixabayVideoRaw): PixabayVariant[] {
+  const out: PixabayVariant[] = [];
+  for (const v of [raw.videos?.large, raw.videos?.medium, raw.videos?.small, raw.videos?.tiny]) {
+    if (
+      v &&
+      typeof v.url === "string" &&
+      v.url.split("?")[0].toLowerCase().endsWith(".mp4") &&
+      typeof v.width === "number"
+    ) {
+      out.push({ url: v.url, width: v.width, height: typeof v.height === "number" ? v.height : null });
+    }
+  }
+  return out;
+}
+
+function pixabayHit(raw: PixabayVideoRaw): StockSearchHit {
+  // A hit has no top-level dimensions (Pexels does); report the
+  // widest variant's, which describe the video's best rendition.
+  const widest = pixabayVariants(raw).sort((a, b) => b.width - a.width)[0] ?? null;
+  return {
+    providerAssetId: String(raw.id ?? ""),
+    title: pixabayTitle(raw),
+    licenseName: PIXABAY_LICENSE_NAME,
+    attributionText: pixabayAttribution(raw),
+    sourceUrl: typeof raw.pageURL === "string" ? raw.pageURL : null,
+    creatorName: pixabayCreatorName(raw),
+    creatorUrl: pixabayCreatorUrl(raw),
+    durationSec: typeof raw.duration === "number" ? raw.duration : null,
+    width: widest?.width ?? null,
+    height: widest?.height ?? null,
+    // The videos API returns no direct preview-image URL (only a
+    // picture_id for Pixabay's own CDN), so none is claimed.
+    previewImageUrl: null,
+  };
+}
+
+/** Choose the downloadable MP4 variant: the widest at or below
+ *  1920 px; if every variant is wider, the narrowest one — the
+ *  same rendition rule as the Pexels adapter. */
+function pixabayDownloadVariant(raw: PixabayVideoRaw): PixabayVariant | null {
+  const variants = pixabayVariants(raw);
+  if (variants.length === 0) return null;
+  const atOrBelow = variants.filter((v) => v.width <= 1920);
+  const pool = atOrBelow.length > 0 ? atOrBelow : variants;
+  return pool.sort((a, b) => (atOrBelow.length > 0 ? b.width - a.width : a.width - b.width))[0];
+}
+
+async function pixabayApi(params: string): Promise<unknown> {
+  const key = config.phase8.pixabayApiKey;
+  // The key is part of the request URL — it must never reach an
+  // error string, a log line, or a response body.
+  const redact = (s: string): string => (key ? s.split(key).join("[redacted]") : s);
+  let res: globalThis.Response;
+  try {
+    res = await fetch(
+      `${config.phase8.pixabayApiBase}/videos/?key=${encodeURIComponent(key)}&${params}`,
+      { signal: AbortSignal.timeout(30_000) },
+    );
+  } catch (err) {
+    throw new StockProviderError(
+      `Could not reach the Pixabay API (${redact(err instanceof Error ? err.message : "network error")}).`,
+      0,
+    );
+  }
+  if (!res.ok) {
+    // Status + a short (redacted) body excerpt only.
+    const body = redact((await res.text().catch(() => "")).slice(0, 200));
+    throw new StockProviderError(
+      res.status === 400 || res.status === 401 || res.status === 403
+        ? `Pixabay rejected the configured API key (HTTP ${res.status}). Check PIXABAY_API_KEY.`
+        : `Pixabay API request failed (HTTP ${res.status})${body ? `: ${body}` : ""}`,
+      res.status,
+    );
+  }
+  return res.json();
+}
+
+function createPixabayStockAdapter(): StockProviderAdapter {
+  const configured = pixabayConfigured;
+  const detail = configured
+    ? `Stock provider "pixabay" is configured.`
+    : "No licensed stock-media provider is configured. Set PIXABAY_API_KEY (server-side) to enable licensed stock imports from Pixabay — a free API key is available at pixabay.com/api. CLIPFORGE never scrapes stock sites.";
+  const requireConfigured = (): void => {
+    if (!configured) throw new ConfigurationError(detail);
+  };
+  return {
+    id: "pixabay",
+    implemented: true,
+    configured,
+    detail,
+    async search(query: string): Promise<StockSearchHit[]> {
+      requireConfigured();
+      const json = (await pixabayApi(
+        `q=${encodeURIComponent(query)}&per_page=15`,
+      )) as { hits?: PixabayVideoRaw[] };
+      return (json.hits ?? []).filter((v) => typeof v.id === "number").map(pixabayHit);
+    },
+    async fetchAsset(providerAssetId: string): Promise<StockAssetDetail> {
+      requireConfigured();
+      const json = (await pixabayApi(
+        `id=${encodeURIComponent(providerAssetId)}`,
+      )) as { hits?: PixabayVideoRaw[] };
+      const raw = (json.hits ?? []).find((v) => typeof v.id === "number") ?? null;
+      if (!raw) {
+        throw new StockProviderError(`Pixabay returned no video for id "${providerAssetId}".`, 404);
+      }
+      const variant = pixabayDownloadVariant(raw);
+      if (!variant) {
         throw new StockProviderError(
-          `Downloading the stock file failed (${err instanceof Error ? err.message : "network error"}).`,
-          0,
+          `Pixabay video ${raw.id} has no downloadable MP4 variant to import.`,
+          422,
         );
       }
-      if (!res.ok || !res.body) {
-        throw new StockProviderError(
-          `Downloading the stock file failed (HTTP ${res.status}).`,
-          res.status,
-        );
-      }
-      const declared = Number(res.headers.get("content-length") ?? "0");
-      if (Number.isFinite(declared) && declared > maxBytes) {
-        throw new StockProviderError(
-          `The stock file is larger than the ${Math.round(maxBytes / (1024 * 1024))} MB import limit.`,
-          413,
-        );
-      }
-      let bytes = 0;
-      const counter = new Transform({
-        transform(chunk: Buffer, _enc, cb) {
-          bytes += chunk.length;
-          if (bytes > maxBytes) {
-            cb(
-              new StockProviderError(
-                `The stock file is larger than the ${Math.round(maxBytes / (1024 * 1024))} MB import limit.`,
-                413,
-              ),
-            );
-          } else {
-            this.push(chunk);
-            cb();
-          }
-        },
-      });
-      await pipeline(Readable.fromWeb(res.body), counter, fs.createWriteStream(destPath));
-      return bytes;
+      const hit = pixabayHit(raw);
+      return {
+        providerAssetId: hit.providerAssetId,
+        title: hit.title,
+        licenseName: PIXABAY_LICENSE_NAME,
+        attributionText: hit.attributionText ?? pixabayAttribution(raw),
+        sourceUrl: hit.sourceUrl ?? "",
+        creatorName: hit.creatorName,
+        creatorUrl: hit.creatorUrl,
+        durationSec: hit.durationSec,
+        // The imported file IS this variant, so its dimensions are
+        // the honest ones to record (the pipeline re-probes the
+        // downloaded file during import regardless).
+        width: variant.width,
+        height: variant.height,
+        downloadUrl: variant.url,
+      };
+    },
+    async downloadToFile(downloadUrl: string, destPath: string, maxBytes: number): Promise<number> {
+      requireConfigured();
+      return downloadStockFileToDisk(downloadUrl, destPath, maxBytes);
     },
   };
 }
 
 /** A named stock provider with NO adapter in this build keeps the
- *  honest stub behaviour (the implemented stock adapter is Pexels). */
+ *  honest stub behaviour (the implemented stock adapters are Pexels
+ *  and Pixabay). */
 function createUnimplementedStockAdapter(id: string): StockProviderAdapter {
   const detail = !stockProviderConfigured
     ? "No licensed stock-media provider is configured. Set STOCK_PROVIDER and STOCK_API_KEY (server-side) to enable licensed imports. CLIPFORGE never scrapes stock sites."
-    : `Stock provider "${id}" is named in the server environment, but no stock adapter is implemented for it in this build (the implemented stock adapter is Pexels — set PEXELS_API_KEY to use it), so licensed imports are still unavailable — setting credentials alone does not enable them.`;
+    : `Stock provider "${id}" is named in the server environment, but no stock adapter is implemented for it in this build (the implemented stock adapters are Pexels and Pixabay — set PEXELS_API_KEY or PIXABAY_API_KEY to use one), so licensed imports are still unavailable — setting credentials alone does not enable them.`;
   const fail = (): never => {
     throw new ConfigurationError(detail);
   };
@@ -430,12 +661,23 @@ function createUnimplementedStockAdapter(id: string): StockProviderAdapter {
   };
 }
 
-// STOCK_PROVIDER unset (or "pexels") selects the implemented Pexels
-// adapter; any other named provider keeps the honest stub.
-export const stockProvider: StockProviderAdapter =
-  config.phase8.stockProvider === "" || config.phase8.stockProvider === "pexels"
-    ? createPexelsStockAdapter()
-    : createUnimplementedStockAdapter(config.phase8.stockProvider);
+// Provider selection: STOCK_PROVIDER="pixabay" names the Pixabay
+// adapter explicitly; any other unknown name keeps the honest stub.
+// Otherwise (unset or "pexels"): the Pexels adapter wins when its
+// key is set; with no Pexels key the Pixabay adapter takes over
+// when PIXABAY_API_KEY is set; with NEITHER key, the Pexels adapter
+// stands in its unconfigured state — its detail names both keys, so
+// status/search/import keep failing honestly with 422
+// CONFIGURATION_ERROR.
+export const stockProvider: StockProviderAdapter = selectStockProvider();
+
+function selectStockProvider(): StockProviderAdapter {
+  const named = config.phase8.stockProvider;
+  if (named === "pixabay") return createPixabayStockAdapter();
+  if (named !== "" && named !== "pexels") return createUnimplementedStockAdapter(named);
+  if (!pexelsConfigured && pixabayConfigured) return createPixabayStockAdapter();
+  return createPexelsStockAdapter();
+}
 
 export interface GenerationProviderAdapter {
   id: string;

@@ -23,7 +23,11 @@
 // PEXELS_API_BASE pointed at a local mock Pexels API, and exercises
 // the REAL adapter code (search → import job → download → library
 // asset with credit metadata) against it — labelled mock coverage,
-// not evidence of a real Pexels account.
+// not evidence of a real Pexels account. A further section does
+// the same for the Pixabay adapter (PIXABAY_API_KEY set with
+// PEXELS_API_KEY absent, PIXABAY_API_BASE at a local mock), and a
+// final boot with BOTH keys set asserts Pexels keeps selection
+// precedence.
 //
 // Run: npm run test:broll
 
@@ -743,6 +747,11 @@ try {
   check("library search finds assets by real term match", searchRes.status === 200 && searchRes.data.results.some((r) => r.id === carDrive.id && r.matchedTerms.includes("car")), JSON.stringify(searchRes.data).slice(0, 240));
   const providerSearch = await alice.call("POST", `/api/projects/${projectId}/broll/search`, { body: { query: "car", source: "provider" } });
   check("provider search without configuration is a 422 (never scraped)", providerSearch.status === 422 && providerSearch.data.error?.code === "CONFIGURATION_ERROR");
+  check(
+    "provider search error names BOTH stock keys (PEXELS_API_KEY + PIXABAY_API_KEY)",
+    (providerSearch.data.error?.message ?? "").includes("PEXELS_API_KEY") && (providerSearch.data.error?.message ?? "").includes("PIXABAY_API_KEY"),
+    JSON.stringify(providerSearch.data).slice(0, 240),
+  );
 
   // ---- presets -------------------------------------------------------------------------
   const presetsRes = await alice.call("GET", "/api/phase8/presets");
@@ -1234,6 +1243,249 @@ try {
     }
     mockPexels.close();
     fs.rmSync(tmp2, { recursive: true, force: true });
+  }
+
+  // ---- Pixabay adapter against a LOCAL MOCK Pixabay API --------------
+  // Third server boot: REAL Pixabay adapter code, PIXABAY_API_KEY
+  // set and PEXELS_API_KEY deliberately EMPTY (that absence is what
+  // selects Pixabay), PIXABAY_API_BASE pointed at an in-process
+  // mock. Proves the adapter's request shape (the key travels as
+  // the `key` query parameter), hit normalisation (hits[].videos
+  // size variants, user/pageURL credit fields) and the shared
+  // download/import pipeline — NOT a real Pixabay account.
+  const pixabayRequests = [];
+  const PIXABAY_VIDEO = {
+    id: 888002,
+    pageURL: "https://pixabay.com/videos/mock-forest-river-888002/",
+    type: "film",
+    tags: "forest, river, nature",
+    duration: 7,
+    views: 1234,
+    downloads: 56,
+    likes: 78,
+    comments: 3,
+    user_id: 4242,
+    user: "Riley Rivers",
+    userImageURL: "https://cdn.pixabay.com/user/2025/01/01/00-00-00-4242_96x96.png",
+    videos: {}, // variant URLs filled in once the mock port is known
+  };
+  const mockPixabay = http.createServer((req, res) => {
+    const u = new URL(req.url, "http://mock");
+    pixabayRequests.push({
+      path: u.pathname,
+      key: u.searchParams.get("key"),
+      q: u.searchParams.get("q"),
+      id: u.searchParams.get("id"),
+    });
+    const json = (status, obj) => {
+      res.writeHead(status, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(obj));
+    };
+    if (u.pathname === "/videos/") {
+      // Search and by-id fetch are the same endpoint: an `id`
+      // parameter returns the one video (or an empty hits list).
+      const id = u.searchParams.get("id");
+      if (id !== null) {
+        return id === "888002"
+          ? json(200, { total: 1, totalHits: 1, hits: [PIXABAY_VIDEO] })
+          : json(200, { total: 0, totalHits: 0, hits: [] });
+      }
+      return json(200, { total: 1, totalHits: 1, hits: [PIXABAY_VIDEO] });
+    }
+    if (u.pathname === "/files/888002-medium.mp4") {
+      res.writeHead(200, { "Content-Type": "video/mp4", "Content-Length": oceanBytes.length });
+      return res.end(oceanBytes);
+    }
+    return json(404, { error: "not found (mock)" });
+  });
+  await new Promise((resolve) => mockPixabay.listen(0, "127.0.0.1", resolve));
+  const pixabayPort = mockPixabay.address().port;
+  PIXABAY_VIDEO.videos = {
+    // The large variant is deliberately wider than 1920 AND its
+    // file 404s: picking it (instead of the widest variant at or
+    // below 1920px) fails the import loudly.
+    large: { url: `http://127.0.0.1:${pixabayPort}/files/888002-large.mp4`, width: 2560, height: 1440, size: 9000000 },
+    medium: { url: `http://127.0.0.1:${pixabayPort}/files/888002-medium.mp4`, width: 1280, height: 720, size: 3000000 },
+    small: { url: `http://127.0.0.1:${pixabayPort}/files/888002-medium.mp4`, width: 960, height: 540, size: 2000000 },
+    tiny: { url: `http://127.0.0.1:${pixabayPort}/files/888002-medium.mp4`, width: 640, height: 360, size: 1000000 },
+  };
+
+  const tmp3 = fs.mkdtempSync(path.join(os.tmpdir(), "cf8-broll-pixabay-"));
+  const PORT3 = 3233;
+  const BASE3 = `http://localhost:${PORT3}`;
+  const server3 = spawn(path.join(serverDir, "node_modules", ".bin", "tsx"), ["src/index.ts"], {
+    cwd: serverDir,
+    env: {
+      ...process.env,
+      PORT: String(PORT3),
+      NODE_ENV: "test",
+      DATABASE_FILE: path.join(tmp3, "test.db"),
+      MEDIA_DIR: path.join(tmp3, "media"),
+      PROCESSING_DIR: path.join(tmp3, "processing"),
+      TOKEN_ENCRYPTION_KEY: crypto.randomBytes(32).toString("base64"),
+      PEXELS_API_KEY: "",
+      PIXABAY_API_KEY: "test-pixabay-key-456",
+      PIXABAY_API_BASE: `http://127.0.0.1:${pixabayPort}`,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: true,
+  });
+  let server3Log = "";
+  server3.stdout.on("data", (d) => (server3Log += d));
+  server3.stderr.on("data", (d) => (server3Log += d));
+  try {
+    await waitForHealth(30000, BASE3);
+    const dave = new Client(BASE3);
+    await dave.register("dave-pixabay@example.com");
+    const proj3 = await dave.call("POST", "/api/projects", {
+      body: { name: "Pixabay Mock Project", workflowType: "LONG_VIDEO_TO_SHORTS" },
+    });
+    const project3Id = proj3.data.project.id;
+
+    const status3 = await dave.call("GET", "/api/phase8/status");
+    check(
+      "pixabay: status reports the stock provider configured + implemented with only the Pixabay key set",
+      status3.data.providers.stock.configured === true && status3.data.providers.stock.implemented === true && status3.data.providers.stock.id === "pixabay",
+      JSON.stringify(status3.data.providers.stock),
+    );
+
+    const search3 = await dave.call("POST", `/api/projects/${project3Id}/broll/search`, {
+      body: { query: "forest river", source: "provider" },
+    });
+    check("pixabay: provider search returns hits from the (mock) API", search3.status === 200 && Array.isArray(search3.data.results) && search3.data.results.length === 1, JSON.stringify(search3.data).slice(0, 240));
+    const pxHit = search3.data.results?.[0] ?? {};
+    check(
+      "pixabay: hit is normalised (id, slug title, duration, widest-variant dimensions)",
+      pxHit.providerAssetId === "888002" && pxHit.title === "Mock forest river" && pxHit.durationSec === 7 && pxHit.width === 2560 && pxHit.height === 1440,
+      JSON.stringify(pxHit).slice(0, 240),
+    );
+    check(
+      "pixabay: hit carries licence + creator credit + source URL",
+      pxHit.licenseName === "Pixabay Content License" && pxHit.attributionText === "Video by Riley Rivers on Pixabay" && pxHit.sourceUrl === "https://pixabay.com/videos/mock-forest-river-888002/" && pxHit.creatorName === "Riley Rivers",
+      JSON.stringify(pxHit).slice(0, 240),
+    );
+    check(
+      "pixabay: the adapter sent the API key as the `key` query parameter",
+      pixabayRequests.some((r) => r.path === "/videos/" && r.q === "forest river" && r.key === "test-pixabay-key-456"),
+      JSON.stringify(pixabayRequests).slice(0, 200),
+    );
+
+    const importPx = await dave.call("POST", `/api/projects/${project3Id}/broll/import`, {
+      body: { provider: "pixabay", providerAssetId: "888002" },
+    });
+    check("pixabay: import queues a real job (201, PROVIDER_IMPORT)", importPx.status === 201 && importPx.data.job?.kind === "PROVIDER_IMPORT" && importPx.data.job?.status !== "FAILED", JSON.stringify(importPx.data).slice(0, 240));
+    const pxJob = await waitForPhase8(dave, importPx.data.job.id);
+    check("pixabay: import job COMPLETES via the worker (download + probe)", pxJob.status === "COMPLETED", JSON.stringify(pxJob).slice(0, 300));
+    check(
+      "pixabay: job result carries the credit metadata",
+      pxJob.result?.provider === "pixabay" && pxJob.result?.licenseName === "Pixabay Content License" && pxJob.result?.attributionText === "Video by Riley Rivers on Pixabay" && pxJob.result?.sourceUrl === "https://pixabay.com/videos/mock-forest-river-888002/",
+      JSON.stringify(pxJob.result).slice(0, 240),
+    );
+
+    const libPx = await dave.call("GET", `/api/media-library?projectId=${project3Id}`);
+    const pxImported = (libPx.data.assets ?? []).filter((a) => a.provider === "pixabay");
+    check("pixabay: the imported asset is in the project library as B-roll", pxImported.length === 1 && pxImported[0].category === "B-roll" && pxImported[0].sourceType === "STOCK_IMPORT", JSON.stringify(libPx.data.assets).slice(0, 240));
+    check(
+      "pixabay: library asset shows licence + attribution",
+      pxImported.length === 1 && pxImported[0].licenseName === "Pixabay Content License" && pxImported[0].attributionText === "Video by Riley Rivers on Pixabay",
+      JSON.stringify(pxImported[0]).slice(0, 240),
+    );
+
+    const db3 = new DatabaseSync(path.join(tmp3, "test.db"));
+    const pxLic = db3.prepare("SELECT * FROM media_license_records WHERE provider = 'pixabay'").get();
+    check(
+      "pixabay: a licence record persists the source URL for the asset",
+      Boolean(pxLic) && pxLic.source_url === "https://pixabay.com/videos/mock-forest-river-888002/" && pxLic.asset_ref === pxImported[0]?.ref,
+      JSON.stringify(pxLic),
+    );
+    const pxMeta = db3.prepare("SELECT * FROM media_asset_meta WHERE provider = 'pixabay'").get();
+    check("pixabay: asset meta persists provider + provider asset id", Boolean(pxMeta) && pxMeta.provider_asset_id === "888002", JSON.stringify(pxMeta));
+    db3.close();
+
+    // Re-import of the same asset completes against the existing
+    // library asset instead of duplicating the file.
+    const importPx2 = await dave.call("POST", `/api/projects/${project3Id}/broll/import`, {
+      body: { provider: "pixabay", providerAssetId: "888002" },
+    });
+    const pxJob2 = await waitForPhase8(dave, importPx2.data.job.id);
+    const libPx2 = await dave.call("GET", `/api/media-library?projectId=${project3Id}`);
+    check(
+      "pixabay: re-import is idempotent (still exactly one library asset)",
+      pxJob2.status === "COMPLETED" && pxJob2.result?.deduplicated === true && (libPx2.data.assets ?? []).filter((a) => a.provider === "pixabay").length === 1,
+      JSON.stringify(pxJob2.result).slice(0, 200),
+    );
+
+    // Unknown id: the (mock) API returns an empty hits list and
+    // the job fails honestly — a PROVIDER-side failure, NOT a
+    // configuration error.
+    const importPxMissing = await dave.call("POST", `/api/projects/${project3Id}/broll/import`, {
+      body: { provider: "pixabay", providerAssetId: "999999" },
+    });
+    const pxMissingJob = await waitForPhase8(dave, importPxMissing.data.job.id);
+    check(
+      "pixabay: unknown asset id fails the job honestly (ASSET_NOT_FOUND, not CONFIGURATION_ERROR)",
+      pxMissingJob.status === "FAILED" && pxMissingJob.errorCode === "ASSET_NOT_FOUND",
+      JSON.stringify(pxMissingJob).slice(0, 240),
+    );
+  } catch (err) {
+    console.error("PIXABAY SECTION ERROR:", err, server3Log.slice(-1500));
+    check("pixabay section completed without a suite error", false, String(err).slice(0, 200));
+  } finally {
+    try {
+      process.kill(-server3.pid, "SIGTERM");
+    } catch {
+      /* already gone */
+    }
+    mockPixabay.close();
+    fs.rmSync(tmp3, { recursive: true, force: true });
+  }
+
+  // ---- Stock selection precedence --------------------------------------
+  // Fourth boot with BOTH keys set: Pexels must keep precedence.
+  // Status only — no provider call is made, so the production API
+  // bases (no *_API_BASE overrides here) are never contacted.
+  const tmp4 = fs.mkdtempSync(path.join(os.tmpdir(), "cf8-broll-precedence-"));
+  const PORT4 = 3234;
+  const BASE4 = `http://localhost:${PORT4}`;
+  const server4 = spawn(path.join(serverDir, "node_modules", ".bin", "tsx"), ["src/index.ts"], {
+    cwd: serverDir,
+    env: {
+      ...process.env,
+      PORT: String(PORT4),
+      NODE_ENV: "test",
+      DATABASE_FILE: path.join(tmp4, "test.db"),
+      MEDIA_DIR: path.join(tmp4, "media"),
+      PROCESSING_DIR: path.join(tmp4, "processing"),
+      TOKEN_ENCRYPTION_KEY: crypto.randomBytes(32).toString("base64"),
+      PEXELS_API_KEY: "test-pexels-key-123",
+      PIXABAY_API_KEY: "test-pixabay-key-456",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: true,
+  });
+  let server4Log = "";
+  server4.stdout.on("data", (d) => (server4Log += d));
+  server4.stderr.on("data", (d) => (server4Log += d));
+  try {
+    await waitForHealth(30000, BASE4);
+    const erin = new Client(BASE4);
+    await erin.register("erin-precedence@example.com");
+    const status4 = await erin.call("GET", "/api/phase8/status");
+    check(
+      "precedence: with BOTH keys set the stock provider is pexels",
+      status4.data.providers.stock.id === "pexels" && status4.data.providers.stock.configured === true && status4.data.providers.stock.implemented === true,
+      JSON.stringify(status4.data.providers.stock),
+    );
+  } catch (err) {
+    console.error("PRECEDENCE SECTION ERROR:", err, server4Log.slice(-1500));
+    check("precedence section completed without a suite error", false, String(err).slice(0, 200));
+  } finally {
+    try {
+      process.kill(-server4.pid, "SIGTERM");
+    } catch {
+      /* already gone */
+    }
+    fs.rmSync(tmp4, { recursive: true, force: true });
   }
 
   db.close();
