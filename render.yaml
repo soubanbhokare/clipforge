@@ -1,0 +1,74 @@
+# CLIPFORGE — Render blueprint: ONE free web service, Docker runtime.
+#
+# The image is Dockerfile.render (single-service: the Express server
+# also serves the built frontend — see server/src/app.ts static
+# serving, gated on NODE_ENV=production / SERVE_STATIC=1).
+#
+# No disk is declared: the free plan has no persistent disk, so
+# server/data (SQLite DB, uploads, media) is ephemeral and resets on
+# restart/redeploy — accepted for the free launch.
+#
+# envVars marked `sync: false` must be set in the Render dashboard
+# before the first successful boot — the server REFUSES to start in
+# production without a valid TOKEN_ENCRYPTION_KEY (see
+# validateProductionConfig in server/src/config.ts).
+
+services:
+  - type: web
+    name: clipforge
+    runtime: docker
+    dockerfilePath: ./Dockerfile.render
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_STATIC
+        value: "1"
+
+      # REQUIRED — the server hard-fails at boot without it.
+      # Format: base64-encoded 32-byte key, strict base64, decoding to
+      # EXACTLY 32 bytes. Generate with:  openssl rand -base64 32
+      # (generateValue is deliberately NOT used: an arbitrary random
+      # string is not guaranteed to satisfy that exact format, and a
+      # wrong-format value means the service refuses to start.)
+      # The dev key-file fallback (server/data/.token-key) is NOT
+      # allowed in production.
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+
+      # Public URL of this service (used for email links and OAuth
+      # redirects). Set to the real URL after the first deploy, e.g.
+      # https://clipforge-xxxx.onrender.com — must be a parseable
+      # http(s) URL or production startup validation fails.
+      - key: APP_BASE_URL
+        sync: false
+      - key: PUBLIC_APP_URL
+        sync: false
+
+      # Comma-separated admin email(s) — bootstrapped as is_admin at
+      # registration/login. Empty = no admin (boot warning).
+      - key: ADMIN_EMAILS
+        sync: false
+
+      # Recommended in production (boot warning when not true).
+      - key: REQUIRE_EMAIL_VERIFICATION
+        value: "true"
+
+      # Email delivery (free tier: Brevo). Without SMTP_HOST the app
+      # falls back to the dev outbox and mail is NOT delivered.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+      # Stock B-roll (free key from pexels.com/api). Without it the
+      # Pexels adapter honestly reports CONFIGURATION_ERROR.
+      - key: PEXELS_API_KEY
+        sync: false

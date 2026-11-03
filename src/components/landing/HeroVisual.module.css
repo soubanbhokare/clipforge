@@ -1,0 +1,37 @@
+/* Hero media stage — layout container for the two reserved hero
+   slots. Panel padding matches the other landing panels (space-5). */
+
+.stage {
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.mainSlot {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.verticalSlot {
+  flex: 0 0 27%;
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .row {
+    flex-direction: column;
+  }
+
+  .verticalSlot {
+    flex-basis: auto;
+    width: min(220px, 62%);
+    margin: 0 auto;
+  }
+}

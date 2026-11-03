@@ -1,0 +1,16 @@
+/* CLIPFORGE logo — the owner-supplied approved vector artwork
+   (see Logo.tsx). Sized by height only; the 807:146 viewBox keeps the
+   proportions exact at every size. No glow, shadow or animation. */
+
+.logoSvg {
+  display: block;
+  flex: none;
+  width: auto;
+  height: 30px;
+}
+
+@media (max-width: 480px) {
+  .logoSvg {
+    height: 24px;
+  }
+}

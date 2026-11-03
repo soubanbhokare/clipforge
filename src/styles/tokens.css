@@ -1,0 +1,98 @@
+/* CLIPFORGE design tokens — the single source of truth for colour,
+   spacing, radius and type. Components must use these variables;
+   never hard-code a brand hex in a component stylesheet. */
+
+:root {
+  /* All native widgets (select option lists, date/time pickers,
+     scrollbars) render in the dark scheme — no light popups anywhere. */
+  color-scheme: dark;
+
+  /* Brand — exact colours from the CLIPFORGE brief. */
+  --midnight: #030407;
+  --cobalt: #1558c9;
+  --lime: #d4ff24;
+
+  /* Backwards-compatible aliases used by Phase 1 styles. */
+  --cf-midnight: var(--midnight);
+  --cf-cobalt: var(--cobalt);
+  --cf-lime: var(--lime);
+
+  /* Supporting neutrals — subtle, no competing brand colour. */
+  --surface: #0a0d14;
+  --surface-2: #10151f;
+  --surface-3: #171d29;
+  --border: #232a38;
+  --border-strong: #33405a;
+  --text: #f2f4f7;
+  --text-muted: #9aa3b2;
+  --text-faint: #8490a3;
+
+  --cf-surface: var(--surface);
+  --cf-surface-2: var(--surface-2);
+  --cf-border: var(--border);
+  --cf-text: var(--text);
+  --cf-text-muted: var(--text-muted);
+  --cf-text-faint: var(--text-faint);
+
+  /* Interaction states (same cobalt family, no purple). */
+  --cobalt-hover: #1d6ae8;
+  --cobalt-soft: rgba(21, 88, 201, 0.16);
+  --cf-cobalt-hover: var(--cobalt-hover);
+  --cf-cobalt-soft: var(--cobalt-soft);
+
+  /* Lime is an accent only — selected nav / important active states,
+     always with dark text where it is a background. */
+  --lime-ink: #101503;
+  --cf-lime-ink: var(--lime-ink);
+
+  /* Functional states — always paired with a text label / marker in
+     StatusIndicator and ErrorState, never colour alone. */
+  --success: #3aa76d;
+  --warning: #d9a441;
+  --error: #e5484d;
+
+  /* Type. System stack only — no webfont dependency. */
+  --font-sans: ui-sans-system, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --cf-font-sans: var(--font-sans);
+  --cf-font-display: var(--font-sans);
+
+  /* Shape and rhythm. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --cf-radius-sm: var(--radius-sm);
+  --cf-radius-md: var(--radius-md);
+  --cf-radius-lg: var(--radius-lg);
+  --cf-radius-pill: var(--radius-pill);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --cf-space-1: var(--space-1);
+  --cf-space-2: var(--space-2);
+  --cf-space-3: var(--space-3);
+  --cf-space-4: var(--space-4);
+  --cf-space-5: var(--space-5);
+  --cf-space-6: var(--space-6);
+  --cf-space-8: var(--space-8);
+  --cf-space-10: var(--space-10);
+  --cf-space-12: var(--space-12);
+  --cf-space-16: var(--space-16);
+
+  --max-width: 1120px;
+  --cf-max-width: var(--max-width);
+  --sidebar-width: 232px;
+  --topbar-height: 56px;
+
+  --transition-fast: 120ms ease;
+  --transition-base: 180ms ease;
+}

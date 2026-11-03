@@ -1,0 +1,82 @@
+/* Landing media sub-blocks — editor, templates, use cases, B-roll
+   and publishing. These sit inside the Features chapter as compact
+   divider-separated blocks (not standalone sections), so the page
+   reads as one straight line. Colours only from tokens. */
+
+.section {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  border-top: 1px solid var(--border);
+  scroll-margin-top: 76px;
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section h2 {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(22px, 2.6vw, 28px);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.intro {
+  max-width: 640px;
+  margin: 0 0 var(--space-6);
+  color: var(--text-muted);
+}
+
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+}
+
+.useCaseGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
+}
+
+.brollGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
+}
+
+.card h3 {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 17px;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .templateGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .useCaseGrid,
+  .brollGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .templateGrid {
+    grid-template-columns: 1fr;
+  }
+}

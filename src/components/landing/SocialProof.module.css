@@ -1,0 +1,50 @@
+/* Social Proof strip — reserved logo slots only. Same section rhythm
+   as the other landing sections; colours only from tokens. */
+
+.section {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6);
+  scroll-margin-top: 76px;
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section h2 {
+  margin: 0 0 var(--space-6);
+  font-size: clamp(26px, 3.6vw, 40px);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.logoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+@media (max-width: 900px) {
+  .logoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .section {
+    padding-top: var(--space-10);
+    padding-bottom: var(--space-10);
+  }
+}
+
+@media (max-width: 480px) {
+  .logoGrid {
+    grid-template-columns: 1fr;
+  }
+}

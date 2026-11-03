@@ -1,0 +1,437 @@
+/* Phase 9 — Export Studio. Brand tokens only (tokens.css). */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  color: var(--text);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.tab,
+.tabActive {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: var(--lime);
+  color: var(--lime-ink);
+  border-color: var(--lime);
+  font-weight: 600;
+}
+
+.errorBanner {
+  border: 1px solid var(--error);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.noticeBanner {
+  border: 1px solid var(--cobalt);
+  background: var(--cobalt-soft);
+  color: var(--text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.newGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.subhead {
+  margin: var(--space-2) 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 150px;
+}
+
+.field select,
+.field input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.fieldInline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.fieldInline select {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 8px;
+  font: inherit;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-3);
+}
+
+.checkGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  font-size: 14px;
+}
+
+.targetList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.targetList label {
+  display: block;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  cursor: pointer;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.hint {
+  color: var(--text-faint);
+  font-size: 13px;
+  margin: 0;
+}
+
+.presetRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+.smallButton,
+.smallButtonDanger {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-3);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.smallButtonDanger {
+  border-color: var(--error);
+  color: var(--text);
+}
+
+.primaryButton {
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--lime);
+  background: var(--lime);
+  color: var(--lime-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.smallButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--cobalt);
+  background: var(--cobalt-soft);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.preflight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.summaryList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.summaryList > div {
+  display: flex;
+  gap: var(--space-3);
+  font-size: 14px;
+}
+
+.summaryList dt {
+  color: var(--text-muted);
+  min-width: 110px;
+}
+
+.summaryList dd {
+  margin: 0;
+}
+
+.checkList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 13px;
+}
+
+.checkOk {
+  color: var(--text-muted);
+}
+
+.checkWarn {
+  color: var(--warning);
+}
+
+.checkBad {
+  color: var(--error);
+}
+
+.queueToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip,
+.chipActive {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chipActive {
+  background: var(--cobalt);
+  border-color: var(--cobalt);
+  color: var(--text);
+}
+
+.bundleBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.jobList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.jobCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.jobHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.statusPill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.status_QUEUED {
+  border-color: var(--cobalt);
+  color: var(--text);
+}
+
+.status_RUNNING {
+  background: var(--cobalt);
+  border-color: var(--cobalt);
+  color: var(--text);
+}
+
+.status_PAUSED {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.status_COMPLETED {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--lime-ink);
+}
+
+.status_FAILED {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.status_CANCELLED {
+  color: var(--text-faint);
+}
+
+.jobMeta,
+.jobTimes {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.jobError {
+  margin: 0;
+  font-size: 13px;
+  color: var(--error);
+}
+
+.progressTrack {
+  position: relative;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  height: 18px;
+  overflow: hidden;
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--cobalt);
+}
+
+.progressLabel {
+  position: relative;
+  display: block;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 18px;
+  color: var(--text);
+}
+
+.jobActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.bundleCheck {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.details {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: 14px;
+}

@@ -1,0 +1,30 @@
+# Dependencies (any depth)
+node_modules/
+**/node_modules/
+
+# Build output (root frontend dist + server dist, any depth)
+dist/
+**/dist/
+
+# Runtime state — ALL of it: SQLite DBs, media, outbox, reports,
+# avatars, exports and the dev token-key file. The app creates this
+# directory itself at boot; no .gitkeep is wanted.
+server/data/
+
+# Local environment files (the committed *.example templates stay)
+.env
+.env.*
+!**/.env.example
+
+# TypeScript incremental build info
+tsconfig.tsbuildinfo
+**/tsconfig.tsbuildinfo
+
+# Python caches (server/scripts workers)
+__pycache__/
+**/__pycache__/
+
+# Logs and OS noise
+*.log
+*.local
+.DS_Store

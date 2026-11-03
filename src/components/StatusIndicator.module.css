@@ -1,0 +1,14 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.idle { color: var(--text-muted); }
+.ready { color: var(--text); }
+.processing { color: var(--cobalt); }
+.success { color: var(--success); }
+.warning { color: var(--warning); }
+.error { color: var(--error); }

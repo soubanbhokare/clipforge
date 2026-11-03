@@ -1,0 +1,18 @@
+# CLIPFORGE — Python runtime dependencies for server/scripts/*.py
+# (transcribe.py — local STT; track.py — face tracking / VAD / reframing).
+#
+# These versions are the ones verified working on the build machine on
+# 2026-11-02 (pip list). Before Phase 13 there was NO requirements file —
+# the STT/CV stack depended on whatever the machine image happened to have.
+# Pin-defensible installs:  pip install -r requirements.txt
+#
+# Direct imports from server/scripts:
+faster-whisper==1.2.1
+onnxruntime==1.31.1
+opencv-python-headless==5.0.0.93
+numpy==2.5.4
+#
+# Runtime dependencies of faster-whisper used by the scripts (VAD + decode):
+ctranslate2==4.8.4
+av==19.0.2
+tokenizers==0.23.3

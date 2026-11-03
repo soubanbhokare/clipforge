@@ -1,0 +1,10 @@
+.panel {
+  width: 320px;
+  max-width: 85vw;
+}
+
+.heading {
+  margin: 0 0 var(--space-3);
+  padding: 0 var(--space-2);
+  font-size: 15px;
+}

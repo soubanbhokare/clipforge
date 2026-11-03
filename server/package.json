@@ -1,0 +1,44 @@
+{
+  "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
+    "cookie-parser": "^1.4.7",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "multer": "^2.5.0",
+    "nodemailer": "^10.3.1",
+    "pdfkit": "^0.20.2",
+    "zod": "^3.24.1"
+  },
+  "description": "CLIPFORGE backend \u2014 Phase 2: authentication, user accounts and sessions (Express + TypeScript + SQLite via node:sqlite; PostgreSQL is the documented production path).",
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^22.10.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pdfkit": "^0.17.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "name": "clipforge-server",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test:e2e": "node tests/auth.e2e.mjs",
+    "test:studio": "node tests/studio.e2e.mjs",
+    "test:clips": "node tests/clips.e2e.mjs",
+    "test:editor": "node tests/editor.e2e.mjs",
+    "test:captions": "node tests/captions.e2e.mjs",
+    "test:tracking": "node tests/tracking.e2e.mjs",
+    "test:broll": "node tests/broll.e2e.mjs",
+    "test:export": "node tests/export.e2e.mjs",
+    "test:publish": "node tests/publishing.e2e.mjs",
+    "test:analytics": "node tests/analytics.e2e.mjs",
+    "test:account": "node tests/account.e2e.mjs"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}

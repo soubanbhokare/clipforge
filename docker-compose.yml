@@ -1,0 +1,114 @@
+# CLIPFORGE — single-host deployment (Phase 13 deployment prep).
+#
+# STATUS: PREPARED, NOT EXECUTED. Docker is not installed on the
+# development machine; this file has been statically reviewed only.
+# See docs/DEPLOYMENT.md for the full runbook.
+#
+# Architecture honesty: this project has NO PostgreSQL and NO Redis.
+# The database is SQLite (a file inside the clipforge-data volume)
+# and every background worker runs in-process inside the api
+# container. There are therefore deliberately NO postgres/redis
+# services here — adding them would deploy infrastructure the code
+# does not use. What would have to change first is documented in
+# docs/DEPLOYMENT.md ("Production path").
+#
+# Usage:
+#   cp server/.env.example server/.env   # then fill real values
+#   export TOKEN_ENCRYPTION_KEY=...      # see docs/ENVIRONMENT.md
+#   export ADMIN_EMAILS=you@example.com
+#   export APP_DOMAIN=clipforge.duckdns.org   # free subdomain (docs/DEPLOYMENT.md); later: clipforge.io
+#   docker compose up -d --build
+#
+# TOKEN_ENCRYPTION_KEY uses the :? form on purpose: compose refuses
+# to start without it, because the application itself does NOT fail
+# on a missing key in production (it falls back to a dev key file —
+# config-validation gap G1 in docs/ENVIRONMENT.md). The deployment
+# layer enforces what the app does not yet enforce itself.
+
+services:
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # Required in production — compose fails fast when unset.
+      TOKEN_ENCRYPTION_KEY: "${TOKEN_ENCRYPTION_KEY:?Set TOKEN_ENCRYPTION_KEY (openssl rand -base64 32) before deploying}"
+      ADMIN_EMAILS: "${ADMIN_EMAILS:-}"
+      APP_BASE_URL: "https://${APP_DOMAIN:-localhost}"
+      PUBLIC_APP_URL: "https://${APP_DOMAIN:-localhost}"
+      DATABASE_FILE: /app/server/data/clipforge.db
+      MEDIA_DIR: /app/server/data/media
+      PROCESSING_DIR: /app/server/data/processing
+      ANALYTICS_REPORTS_DIR: /app/server/data/reports
+      AVATARS_DIR: /app/server/data/avatars
+      DATA_EXPORTS_DIR: /app/server/data/data-exports
+      WORKSPACE_LOGOS_DIR: /app/server/data/workspace-logos
+      # Everything else (SMTP, OAuth, provider keys, payments) is
+      # passed through only when present in the host environment or
+      # an env_file you control outside git.
+    env_file:
+      # Optional in compose v2.24+: when server/.env is absent the
+      # stack still starts (optional vars simply stay unset and their
+      # features report "not configured").
+      - path: ./server/.env
+        required: false
+    volumes:
+      - clipforge-data:/app/server/data
+    # Not published to the host: all traffic enters via `web`.
+    expose:
+      - "3001"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: "${APP_DOMAIN:-localhost}"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    configs:
+      - target: /etc/caddy/Caddyfile
+        source: caddyfile
+
+volumes:
+  clipforge-data:
+  caddy-data:
+  caddy-config:
+
+# Reverse proxy: serves the SPA from /srv, proxies /api to the api
+# service, and obtains/renews HTTPS certificates automatically
+# (Caddy + Let's Encrypt) when APP_DOMAIN is a real public domain.
+# For a plain-IP / localhost staging box set APP_DOMAIN to the IP or
+# "localhost" — Caddy will serve HTTP / a local-CA certificate; see
+# docs/DEPLOYMENT.md. An nginx equivalent is documented there too.
+configs:
+  caddyfile:
+    content: |
+      {$APP_DOMAIN:localhost} {
+        root * /srv
+        encode gzip
+        handle /api/* {
+          reverse_proxy api:3001
+        }
+        handle {
+          try_files {path} /index.html
+          file_server
+        }
+      }

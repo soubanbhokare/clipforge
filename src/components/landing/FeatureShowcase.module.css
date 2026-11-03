@@ -1,0 +1,46 @@
+/* Feature showcase — copy + one reserved media slot per feature,
+   stacked in a single column so the features read as one straight
+   vertical line. Features are separated by a divider and one
+   consistent padding (space-8 top/bottom), giving a steady 64px
+   between feature blocks with no extra stack gap. */
+
+.showcase {
+  display: flex;
+  flex-direction: column;
+}
+
+.feature {
+  padding: var(--space-8) 0;
+  border-top: 1px solid var(--border);
+}
+
+.feature:last-child {
+  padding-bottom: 0;
+}
+
+.copy {
+  max-width: 640px;
+  margin-bottom: var(--space-5);
+}
+
+.copy h3 {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(24px, 3vw, 32px);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.copy p:last-child {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.media {
+  min-width: 0;
+  max-width: 760px;
+}
+
+.mediaNarrow {
+  min-width: 0;
+  width: min(260px, 100%);
+}

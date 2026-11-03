@@ -1,0 +1,208 @@
+import { useId } from "react";
+import styles from "./Logo.module.css";
+
+/**
+ * CLIPFORGE logo — the owner-supplied approved vector logo.
+ *
+ * On 2026-11-02 the project owner replaced the earlier simplified
+ * recreation with this exact traced SVG (gradient brackets, play
+ * triangle and path-drawn CLIP/FORGE letters). The path geometry below
+ * is IDENTICAL to public/assets/clipforge-logo.svg — do not redraw it.
+ * Gradient ids are namespaced per instance with useId so the header,
+ * footer, sidebar and auth screens can all render the logo on one page
+ * without id collisions.
+ */
+export default function Logo() {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const blue = `blueBracket-${uid}`;
+  const play = `playFill-${uid}`;
+  const lime = `limeFill-${uid}`;
+
+  return (
+    <svg
+      className={styles.logoSvg}
+      viewBox="0 0 807 146"
+      role="img"
+      aria-label="CLIPFORGE"
+      focusable="false"
+    >
+      <defs>
+        <linearGradient id={blue} x1="0" y1="0" x2="0.2" y2="1">
+          <stop offset="0" stopColor="#0860E9" />
+          <stop offset="1" stopColor="#0646B8" />
+        </linearGradient>
+        <linearGradient id={play} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#12C7F5" />
+          <stop offset="1" stopColor="#0875E9" />
+        </linearGradient>
+        <linearGradient id={lime} x1="0" y1="0" x2="1" y2="0.3">
+          <stop offset="0" stopColor="#CEFA18" />
+          <stop offset="1" stopColor="#D4FF24" />
+        </linearGradient>
+      </defs>
+
+      {/* BLUE LEFT BRACKET */}
+      <path
+        d="
+M 79,9 L 65,9 L 64,8 L 47,8 L 46,7
+L 25,7 L 15,12 L 11,16 L 8,22 L 8,25
+L 7,26 L 7,81 L 24,69 L 24,29 L 26,27
+L 26,26 L 31,23 L 49,23 L 50,24 L 71,24
+L 72,25 L 74,25 L 76,24 L 79,20 Z
+
+M 7,95 L 7,123 L 8,124 L 8,127
+L 9,128 L 9,130 L 11,132 L 11,133
+L 16,138 L 22,141 L 24,141 L 25,142
+L 35,142 L 36,141 L 41,141 L 42,140
+L 47,140 L 48,139 L 54,139 L 55,138
+L 61,138 L 62,137 L 67,137 L 68,136
+L 73,136 L 74,135 L 76,135 L 79,131
+L 79,125 L 75,121 L 72,121 L 71,122
+L 65,122 L 64,123 L 57,123 L 56,124
+L 49,124 L 48,125 L 42,125 L 41,126
+L 34,126 L 33,127 L 31,126 L 29,126
+L 25,122 L 24,120 L 24,84 L 21,85
+L 19,87 L 18,87 L 12,92 L 11,92 Z"
+        fill={`url(#${blue})`}
+        fillRule="evenodd"
+      />
+
+      {/* CENTER PLAY BUTTON */}
+      <path
+        d="
+M 55,39 L 53,40 L 50,43 L 49,45
+L 49,106 L 50,108 L 54,112 L 61,112
+L 65,109 L 66,109 L 68,107 L 69,107
+L 71,105 L 72,105 L 74,103 L 75,103
+L 77,101 L 78,101 L 80,99 L 81,99
+L 83,97 L 84,97 L 86,95 L 87,95
+L 89,93 L 90,93 L 92,91 L 93,91
+L 96,88 L 97,88 L 99,86 L 103,84
+L 106,81 L 107,79 L 107,73 L 105,69
+L 104,69 L 101,66 L 98,65 L 95,62
+L 94,62 L 92,60 L 88,58 L 85,55
+L 79,52 L 76,49 L 75,49 L 73,47
+L 72,47 L 70,45 L 66,43 L 63,40
+L 61,39 Z"
+        fill={`url(#${play})`}
+      />
+
+      {/* LIME FORGE LETTERS + RIGHT BRACKET */}
+      <path
+        d="
+M 600,58 L 601,57 L 634,57 L 637,61
+L 637,66 L 636,68 L 633,71 L 601,71
+L 600,70 Z
+
+M 517,60 L 521,57 L 553,57 L 557,61
+L 558,63 L 558,83 L 557,85 L 553,89
+L 520,89 L 516,85 L 516,62 Z
+
+M 740,41 L 742,45 L 742,105 L 799,105
+L 799,90 L 759,90 L 758,89 L 758,82
+L 760,80 L 792,80 L 792,67 L 760,67
+L 758,65 L 758,58 L 759,57 L 799,57
+L 799,41 Z
+
+M 666,47 L 666,48 L 664,50 L 661,56
+L 661,91 L 664,97 L 668,101 L 676,105
+L 720,105 L 721,104 L 723,104 L 727,102
+L 730,99 L 730,98 L 732,96 L 732,93
+L 733,92 L 733,67 L 696,67 L 696,80
+L 701,80 L 702,81 L 703,80 L 711,80
+L 712,81 L 714,80 L 716,82 L 716,88
+L 714,90 L 681,90 L 678,87 L 677,85
+L 677,62 L 678,60 L 681,57 L 730,57
+L 731,56 L 731,48 L 730,46 L 726,42
+L 724,42 L 723,41 L 677,41 L 676,42
+L 671,43 L 668,46 Z
+
+M 581,41 L 583,45 L 583,105 L 600,105
+L 600,87 L 601,86 L 618,86 L 622,90
+L 622,91 L 629,99 L 629,100 L 632,103
+L 633,105 L 654,105 L 652,101 L 648,97
+L 648,96 L 645,93 L 645,92 L 641,88
+L 640,86 L 641,84 L 643,84 L 645,82
+L 646,82 L 651,77 L 653,73 L 653,70
+L 654,69 L 654,58 L 653,57 L 653,54
+L 652,53 L 652,51 L 647,45 L 639,41 Z
+
+M 502,50 L 499,56 L 499,90 L 502,96
+L 508,102 L 512,104 L 514,104 L 515,105
+L 557,105 L 558,104 L 561,104 L 565,102
+L 570,98 L 574,90 L 574,56 L 573,55
+L 573,53 L 572,51 L 565,44 L 561,42
+L 559,42 L 558,41 L 515,41 L 514,42
+L 512,42 L 508,44 Z
+
+M 497,41 L 443,41 L 442,42 L 439,42
+L 435,44 L 431,48 L 428,54 L 428,105
+L 445,105 L 445,85 L 446,84 L 485,84
+L 485,69 L 446,69 L 445,68 L 445,61
+L 448,57 L 491,57 L 491,54 L 492,53
+L 492,50 L 493,49 L 493,47 L 495,45 Z
+
+M 98,28 L 96,28 L 96,39 L 97,41 L 99,43
+L 101,43 L 106,46 L 108,46 L 113,49
+L 115,49 L 119,51 L 122,55 L 122,96
+L 120,99 L 108,105 L 106,105 L 100,108
+L 98,110 L 97,112 L 97,114 L 96,115
+L 96,120 L 97,121 L 97,123 L 98,122
+L 100,122 L 101,121 L 106,120 L 109,118
+L 111,118 L 114,116 L 116,116 L 119,114
+L 121,114 L 124,112 L 126,112 L 128,111
+L 134,105 L 134,103 L 135,102 L 135,49
+L 134,48 L 134,46 L 132,44 L 132,43
+L 126,39 L 124,39 L 119,36 L 117,36
+L 114,34 L 112,34 L 109,32 L 107,32
+L 104,30 L 102,30 Z"
+        fill={`url(#${lime})`}
+        fillRule="evenodd"
+      />
+
+      {/* R INNER CUTOUT: BLACK, NOT BLUE */}
+      <path
+        d="
+M 600,58 L 601,57 L 634,57
+L 637,61 L 637,66 L 636,68
+L 633,71 L 601,71 L 600,70 Z"
+        fill="var(--midnight)"
+      />
+
+      {/* WHITE CLIP LETTERS */}
+      <path
+        d="
+M 361,58 L 363,56 L 397,56 L 399,57
+L 402,61 L 402,67 L 398,71 L 362,71
+L 361,70 Z
+
+M 317,42 L 317,105 L 333,105 L 334,104
+L 334,42 Z
+
+M 251,42 L 251,101 L 252,103 L 256,105
+L 308,105 L 308,90 L 269,90 L 268,89
+L 268,42 Z
+
+M 180,49 L 180,50 L 178,52 L 175,58
+L 175,89 L 178,95 L 184,101 L 190,104
+L 193,104 L 194,105 L 241,105 L 241,90
+L 198,90 L 196,89 L 192,85 L 192,83
+L 191,82 L 192,81 L 192,71 L 191,70
+L 191,65 L 192,64 L 192,62 L 196,58
+L 198,57 L 241,57 L 241,42 L 192,42
+L 191,43 L 189,43 L 185,45 L 182,48 Z
+
+M 344,42 L 344,102 L 345,103 L 344,104
+L 345,105 L 361,105 L 361,87 L 362,86
+L 401,86 L 402,85 L 405,85 L 411,82
+L 415,78 L 418,72 L 418,70 L 419,69
+L 419,58 L 418,57 L 418,55 L 416,51
+L 414,49 L 414,48 L 412,46 L 411,46
+L 409,44 L 405,42 L 401,42 L 400,41
+L 352,41 L 351,42 Z"
+        fill="#F8F9FC"
+        fillRule="evenodd"
+      />
+    </svg>
+  );
+}

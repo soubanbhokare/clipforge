@@ -1,0 +1,5 @@
+# Server runtime data — never commit databases, outbox emails or env files.
+data/
+.env
+dist/
+node_modules/

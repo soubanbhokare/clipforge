@@ -1,0 +1,215 @@
+# CLIPFORGE CI — Phase 13 (§13).
+#
+# STATUS: PREPARED, NOT EXECUTED. This project is not currently under
+# git and has no GitHub remote, so this workflow has never run. It
+# becomes active the moment the repo is pushed to GitHub. Pipeline
+# description, gates and rollback: docs/CI_CD.md.
+#
+# Gates (honest inventory): the project has NO lint or format tooling
+# — neither package.json defines eslint/prettier scripts and no
+# config files exist. The gates below are therefore: TypeScript
+# typecheck + production builds (both packages), a migration
+# validation boot, the 11 server e2e suites, and npm audit. Adding
+# ESLint + Prettier is a tracked follow-up, not silently skipped.
+#
+# Deployment: there is NO automatic deployment to production.
+# Staging/production jobs run only via workflow_dispatch and are
+# additionally gated by GitHub Environment protection rules
+# (required reviewers), which must be configured in the repository
+# settings — the workflow alone cannot enforce them.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Optional manual deployment target"
+        type: choice
+        options: [none, staging, production]
+        default: none
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  build:
+    name: Typecheck + builds (frontend & server)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - name: Frontend — install, typecheck, build
+        run: |
+          npm ci
+          npm run build   # tsc -b && vite build
+      - name: Frontend artifact (deployment artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+      - name: Server — install, typecheck, build
+        working-directory: server
+        run: |
+          npm ci
+          npm run build   # tsc -p tsconfig.json
+      - name: Server artifact (deployment artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-dist-${{ github.sha }}
+          path: |
+            server/dist/
+            server/scripts/
+            server/models/
+            server/package.json
+            server/package-lock.json
+          if-no-files-found: error
+
+  migration-check:
+    name: Migration validation (fresh DB boot)
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install server deps + ffmpeg
+        working-directory: server
+        run: |
+          npm ci
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Boot against a throwaway DB and validate schema
+        working-directory: server
+        env:
+          NODE_ENV: test
+          PORT: "3199"
+          DATABASE_FILE: ${{ runner.temp }}/migration-check.db
+          MEDIA_DIR: ${{ runner.temp }}/media
+          PROCESSING_DIR: ${{ runner.temp }}/processing
+        run: |
+          npm run build
+          node dist/index.js &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID || true" EXIT
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:3199/api/health && break || sleep 1
+          done
+          node -e "
+            const { DatabaseSync } = require('node:sqlite');
+            const db = new DatabaseSync(process.env.DATABASE_FILE);
+            const v = db.prepare('PRAGMA user_version').get().user_version;
+            const fk = db.prepare('PRAGMA foreign_key_check').all();
+            console.log('user_version =', v, '| foreign_key violations =', fk.length);
+            if (v !== 14) { console.error('Expected user_version 14'); process.exit(1); }
+            if (fk.length !== 0) { console.error('foreign_key_check not clean'); process.exit(1); }
+          "
+          # A second boot against the same DB must be a no-op
+          # (migrations are idempotent — a crash here fails the job).
+
+  audit:
+    name: Dependency scan (npm audit)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Audit frontend (fail on high+)
+        run: npm audit --audit-level=high
+      - name: Audit server (fail on high+)
+        working-directory: server
+        run: npm audit --audit-level=high
+
+  e2e:
+    name: E2E suites (11)
+    runs-on: ubuntu-24.04
+    needs: build
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: System + Python deps for media/STT/tracking suites
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install faster-whisper numpy onnxruntime opencv-python-headless
+      - name: Install (root + server)
+        run: |
+          npm ci
+          npm ci --prefix server
+      # Suites run sequentially on purpose: they bind fixed ports and
+      # share /tmp scratch; several create large media files. The dev
+      # machine's /tmp is a small tmpfs — the runner's disk is larger,
+      # but scratch is cleared between suites anyway.
+      - name: Run the 11 suites
+        working-directory: server
+        run: |
+          set -e
+          for suite in auth studio clips editor captions tracking broll export publish analytics account; do
+            echo "::group::test:$suite"
+            npm run "test:$suite"
+            echo "::endgroup::"
+            rm -rf /tmp/clipforge-* 2>/dev/null || true
+          done
+
+  deploy-staging:
+    name: Deploy to staging (manual)
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'staging'
+    needs: [build, migration-check, audit, e2e]
+    runs-on: ubuntu-24.04
+    environment:
+      name: staging   # configure required reviewers in repo settings
+    steps:
+      - name: Placeholder — no deploy target is wired yet
+        run: |
+          echo "Staging deployment is a manual placeholder (Phase 13)."
+          echo "Target proposal: single small VPS per docs/DEPLOYMENT.md."
+          echo "Wire the real steps (artifact download + compose up on"
+          echo "the staging host) only after the first staging host"
+          echo "exists; record the run in docs/RELEASE_PROCESS.md."
+
+  deploy-production:
+    name: Deploy to production (manual, approval-gated)
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'production'
+    needs: [build, migration-check, audit, e2e]
+    runs-on: ubuntu-24.04
+    environment:
+      name: production   # MUST have required reviewers in repo settings
+    steps:
+      - name: Placeholder — production deploy is never automatic
+        run: |
+          echo "Production deployment placeholder (Phase 13)."
+          echo "Prerequisites before wiring real steps:"
+          echo " - release record completed (docs/RELEASE_PROCESS.md)"
+          echo " - staging smoke tests passed on the same build"
+          echo " - explicit approval via the production Environment"
+          echo " - verified backup of the SQLite data volume"

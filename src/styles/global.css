@@ -1,0 +1,78 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--midnight);
+}
+
+body {
+  margin: 0;
+  background: var(--midnight);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 3px;
+}
+
+/* Native selects follow the dark theme everywhere. This is a floor:
+   component classes (Form .control, .field select, .select, …) carry
+   the same treatment and override it; unclassed selects in dense
+   panels inherit it instead of the native light chrome. The option
+   list itself renders dark via color-scheme: dark (tokens.css). */
+select {
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+}
+
+option,
+optgroup {
+  background-color: var(--surface-2);
+  color: var(--text);
+}
+
+/* Fields take the cobalt border focus the shared Form styles already
+   use — never a bright lime box around a field. (Checkboxes, radios,
+   range and colour inputs keep their native focus rendering.) */
+select:focus-visible,
+textarea:focus-visible,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):focus-visible {
+  outline: none;
+  border-color: var(--cobalt);
+}
+
+/* Restrained motion everywhere; honour reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

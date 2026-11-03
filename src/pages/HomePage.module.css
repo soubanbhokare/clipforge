@@ -1,0 +1,568 @@
+/* CLIPFORGE landing page — Phase 3. Colours come only from tokens:
+   --midnight / --cobalt / --lime and the neutral --surface/--border/
+   --text tokens. No new hex values are introduced here. */
+
+.page {
+  background: var(--midnight);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* ---------- Navigation ---------- */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-6);
+  background: var(--midnight);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Logo sizing/typography lives in components/Logo.module.css; this
+   class is only the header/footer placement wrapper. */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.navCentre {
+  display: flex;
+  gap: var(--space-6);
+  margin: 0 auto;
+}
+
+.navCentre a {
+  position: relative;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.navCentre a:hover {
+  color: var(--text);
+}
+
+.navCentre a::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -5px;
+  left: 0;
+  height: 2px;
+  background: var(--lime);
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.navCentre a:hover::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.signInButton {
+  padding: 9px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.signInButton:hover {
+  color: var(--lime);
+}
+
+/* Phase 2: "Explore Demo" guest entry — a quiet text link, header
+   and final CTA only. */
+.exploreLink {
+  padding: 9px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.exploreLink:hover {
+  color: var(--lime);
+}
+
+.createButton {
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  background: var(--cobalt);
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.createButton:hover {
+  background: var(--cobalt-hover);
+  transform: translateY(-1px);
+}
+
+.menuButton {
+  display: none;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mobileMenu {
+  display: none;
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 760px;
+  min-width: 0;
+}
+
+.heroVisual {
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-4);
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: fadeIn 600ms ease forwards;
+  animation-delay: 0.05s;
+}
+
+.title {
+  margin: 0 0 var(--space-4);
+  font-size: clamp(38px, 5.4vw, 66px);
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+}
+
+.line {
+  display: block;
+  opacity: 0;
+  animation: lineReveal 700ms ease forwards;
+}
+
+@keyframes lineReveal {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.line em {
+  color: var(--cobalt);
+  font-style: normal;
+}
+
+.subtitle {
+  max-width: 520px;
+  margin: 0 auto var(--space-6);
+  color: var(--text-muted);
+  font-size: 18px;
+  opacity: 0;
+  animation: fadeIn 600ms ease forwards;
+  animation-delay: 0.55s;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  opacity: 0;
+  animation: fadeIn 600ms ease forwards;
+  animation-delay: 0.75s;
+}
+
+.primaryButton {
+  display: inline-block;
+  padding: 12px 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--cobalt);
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.primaryButton:hover {
+  background: var(--cobalt-hover);
+  transform: translateY(-1px);
+}
+
+/* ---------- Sections ---------- */
+
+.section {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6);
+  scroll-margin-top: 76px;
+}
+
+.sectionEyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section h2 {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(26px, 3.6vw, 40px);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+/* Sections whose header has no intro paragraph (How It Works, FAQ)
+   get the same 24px header-to-content gap as sections with one. */
+.section h2:last-child {
+  margin-bottom: var(--space-6);
+}
+
+.sectionIntro {
+  max-width: 640px;
+  margin: 0 0 var(--space-6);
+  color: var(--text-muted);
+}
+
+.stepMedia {
+  margin-top: var(--space-4);
+}
+
+/* Before / After — a quiet headerless panel block between the
+   Solution and Features sections, on the tighter sub-block rhythm. */
+.demoSection {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  scroll-margin-top: 76px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.step {
+  padding: var(--space-6);
+  border-right: 1px solid var(--border);
+  transition: background var(--transition-base);
+}
+
+.step:last-child {
+  border-right: 0;
+}
+
+.step:hover {
+  background: var(--surface-2);
+}
+
+.stepNumber {
+  display: block;
+  margin-bottom: var(--space-3);
+  color: var(--cobalt);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.step h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 17px;
+}
+
+.step p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ---------- FAQ ---------- */
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.faqItem {
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.faqItem summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.faqItem p {
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+/* ---------- Final CTA ---------- */
+
+.finalCta {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6);
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.finalCtaVisual {
+  max-width: 720px;
+  margin: 0 auto var(--space-6);
+  text-align: left;
+}
+
+.finalCta h2 {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.01em;
+}
+
+.finalCta p {
+  max-width: 560px;
+  margin: 0 auto var(--space-6);
+  color: var(--text-muted);
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: var(--space-8);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
+.footerBrand p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.footer nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.footer nav h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.footer nav a,
+.footer nav button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.footer nav a:hover,
+.footer nav button:hover {
+  color: var(--text);
+}
+
+.copyright {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.legalNotice {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.legalNotice button {
+  margin-left: var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .hero {
+    padding-top: var(--space-10);
+  }
+
+  .steps {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .step:nth-child(2) {
+    border-right: 0;
+  }
+
+  .step:nth-child(1),
+  .step:nth-child(2) {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .footer {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .navCentre {
+    display: none;
+  }
+
+  .signInButton {
+    display: none;
+  }
+
+  .menuButton {
+    display: inline-block;
+  }
+
+  .mobileMenu {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+  }
+
+  .mobileMenu a,
+  .mobileMenu button {
+    padding: var(--space-3) 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .section {
+    padding-top: var(--space-10);
+    padding-bottom: var(--space-10);
+  }
+
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .step {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step:last-child {
+    border-bottom: 0;
+  }
+
+  .footer {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eyebrow,
+  .line,
+  .subtitle,
+  .actions {
+    opacity: 1;
+    animation: none !important;
+  }
+
+  .createButton:hover,
+  .primaryButton:hover {
+    transform: none;
+  }
+}

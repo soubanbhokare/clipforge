@@ -1,0 +1,117 @@
+# CLIPFORGE — single-service image for Render Free (see render.yaml).
+#
+# STATUS: PREPARED, NOT EXECUTED. Docker is not installed on the
+# development machine, so this file has been statically reviewed only
+# — no successful `docker build` is claimed. The first Render build is
+# the verification step.
+#
+# Why this file exists alongside ./Dockerfile: the repo Dockerfile
+# splits the product into an `api` service plus a Caddy `web` service.
+# Render Free runs ONE web service, so this image assembles ONE
+# runnable process instead: the compiled Express server, which (with
+# NODE_ENV=production / SERVE_STATIC=1 — see server/src/app.ts) also
+# serves the built frontend from /app/dist same-origin.
+#
+# Layout inside the image:
+#   /app/dist            built frontend (Vite output)
+#   /app/server/dist     compiled server — CMD runs this directly
+#   /app/server          package.json + production node_modules,
+#                        scripts/ (Python workers), models/ (ONNX),
+#                        data/ (runtime state — EPHEMERAL on Render
+#                        Free: no persistent disk exists on the plan,
+#                        so the SQLite DB and uploads reset whenever
+#                        the service restarts/redeploys. Accepted for
+#                        the free launch; a paid disk or external DB
+#                        is the documented upgrade path.)
+#
+# The server resolves its data/models/scripts paths from its own
+# module location (serverDir in server/src/config.ts), NOT from the
+# working directory — so running from /app with
+# `node server/dist/index.js` resolves /app/server/data, .../models
+# and .../scripts correctly.
+
+# ---------- Stage 1: frontend build ----------
+FROM node:24.22.1-bookworm-slim AS frontend-build
+WORKDIR /build
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY tsconfig.json vite.config.ts index.html ./
+COPY src ./src
+COPY public ./public
+# VITE_API_URL is intentionally NOT set: in single-service mode the
+# frontend calls "/api" same-origin on the very same process.
+RUN npm run build
+
+# ---------- Stage 2: server build ----------
+FROM node:24.22.1-bookworm-slim AS server-build
+WORKDIR /build/server
+COPY server/package.json server/package-lock.json ./
+RUN npm ci
+COPY server/tsconfig.json ./
+COPY server/src ./src
+RUN npm run build
+
+# ---------- Stage 3: the one runnable service ----------
+FROM node:24.22.1-bookworm-slim
+ENV NODE_ENV=production \
+    SERVE_STATIC=1 \
+    HF_HOME=/app/.cache/huggingface \
+    YTDLP_BIN=/usr/local/bin/yt-dlp
+WORKDIR /app
+
+# System runtime deps:
+#  - ffmpeg: media pipeline (FFmpeg/FFprobe are invoked from PATH —
+#    there is no FFMPEG_PATH variable).
+#  - python3 + pip: the local faster-whisper STT worker
+#    (server/scripts/transcribe.py) and the Phase 7 tracking worker
+#    (server/scripts/track.py), spawned via PYTHON_BIN=python3.
+#  - curl + ca-certificates: fetch the pinned yt-dlp binary below.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ffmpeg python3 python3-pip ca-certificates curl \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+# yt-dlp: pinned standalone release binary (the same version verified
+# on the dev machine). The app invokes it via YTDLP_BIN (set above),
+# falling back to "yt-dlp" on PATH — both point here.
+RUN curl -fsSL -o /usr/local/bin/yt-dlp \
+      https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp \
+ && chmod a+rx /usr/local/bin/yt-dlp \
+ && /usr/local/bin/yt-dlp --version
+
+# Python packages (pinned in server/requirements.txt — faster-whisper,
+# onnxruntime, opencv-headless, numpy + faster-whisper's runtime deps).
+COPY server/requirements.txt ./server/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt
+
+# Pre-download the faster-whisper model the app uses by default
+# (WHISPER_MODEL, server/src/config.ts — "small") into HF_HOME, so the
+# first transcription does not download ~500 MB at runtime.
+RUN python3 -c "from faster_whisper.utils import download_model; download_model('small')"
+
+# Built frontend → /app/dist (served by the server, see header).
+COPY --from=frontend-build /build/dist ./dist
+
+# Server production dependencies only. tsx is a devDependency and is
+# deliberately absent: the runtime entry point is the COMPILED
+# server/dist/index.js, never `npm start`.
+COPY server/package.json server/package-lock.json ./server/
+RUN cd server && npm ci --omit=dev && npm cache clean --force
+
+# Compiled server + the Python workers + ONNX models it shells out to.
+COPY --from=server-build /build/server/dist ./server/dist
+COPY server/scripts ./server/scripts
+COPY server/models ./server/models
+
+# Runtime state dir (SQLite DB, media, processing, reports, avatars,
+# exports). Ephemeral on Render Free — see the header note.
+RUN mkdir -p server/data && chown -R node:node /app
+
+USER node
+
+# Informational only: the app reads its port from the PORT env var
+# (server/src/config.ts, default 3001); Render injects PORT.
+EXPOSE 3001
+
+CMD ["node", "server/dist/index.js"]

@@ -1,0 +1,73 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CLIPFORGE">
+  <title>CLIPFORGE</title>
+  <!-- Favicon: the owner-supplied approved symbol (from
+       assets/clipforge-symbol.svg, geometry unchanged) on a Midnight
+       Black rounded tile. -->
+  <rect width="64" height="64" rx="14" fill="#030407"/>
+  <svg x="6" y="6" width="52" height="52" viewBox="0 0 146 146">
+    <defs>
+      <linearGradient id="blueBracket" x1="0" y1="0" x2="0.2" y2="1">
+        <stop offset="0" stop-color="#0860E9"/>
+        <stop offset="1" stop-color="#0646B8"/>
+      </linearGradient>
+      <linearGradient id="playFill" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#12C7F5"/>
+        <stop offset="1" stop-color="#0875E9"/>
+      </linearGradient>
+      <linearGradient id="limeFill" x1="0" y1="0" x2="1" y2="0.3">
+        <stop offset="0" stop-color="#CEFA18"/>
+        <stop offset="1" stop-color="#D4FF24"/>
+      </linearGradient>
+    </defs>
+    <path d="
+M 79,9 L 65,9 L 64,8 L 47,8 L 46,7
+L 25,7 L 15,12 L 11,16 L 8,22 L 8,25
+L 7,26 L 7,81 L 24,69 L 24,29 L 26,27
+L 26,26 L 31,23 L 49,23 L 50,24 L 71,24
+L 72,25 L 74,25 L 76,24 L 79,20 Z
+
+M 7,95 L 7,123 L 8,124 L 8,127
+L 9,128 L 9,130 L 11,132 L 11,133
+L 16,138 L 22,141 L 24,141 L 25,142
+L 35,142 L 36,141 L 41,141 L 42,140
+L 47,140 L 48,139 L 54,139 L 55,138
+L 61,138 L 62,137 L 67,137 L 68,136
+L 73,136 L 74,135 L 76,135 L 79,131
+L 79,125 L 75,121 L 72,121 L 71,122
+L 65,122 L 64,123 L 57,123 L 56,124
+L 49,124 L 48,125 L 42,125 L 41,126
+L 34,126 L 33,127 L 31,126 L 29,126
+L 25,122 L 24,120 L 24,84 L 21,85
+L 19,87 L 18,87 L 12,92 L 11,92 Z" fill="url(#blueBracket)" fill-rule="evenodd"/>
+    <path d="
+M 55,39 L 53,40 L 50,43 L 49,45
+L 49,106 L 50,108 L 54,112 L 61,112
+L 65,109 L 66,109 L 68,107 L 69,107
+L 71,105 L 72,105 L 74,103 L 75,103
+L 77,101 L 78,101 L 80,99 L 81,99
+L 83,97 L 84,97 L 86,95 L 87,95
+L 89,93 L 90,93 L 92,91 L 93,91
+L 96,88 L 97,88 L 99,86 L 103,84
+L 106,81 L 107,79 L 107,73 L 105,69
+L 104,69 L 101,66 L 98,65 L 95,62
+L 94,62 L 92,60 L 88,58 L 85,55
+L 79,52 L 76,49 L 75,49 L 73,47
+L 72,47 L 70,45 L 66,43 L 63,40
+L 61,39 Z" fill="url(#playFill)"/>
+    <path d="
+M 98,28 L 96,28 L 96,39 L 97,41 L 99,43
+L 101,43 L 106,46 L 108,46 L 113,49
+L 115,49 L 119,51 L 122,55 L 122,96
+L 120,99 L 108,105 L 106,105 L 100,108
+L 98,110 L 97,112 L 97,114 L 96,115
+L 96,120 L 97,121 L 97,123 L 98,122
+L 100,122 L 101,121 L 106,120 L 109,118
+L 111,118 L 114,116 L 116,116 L 119,114
+L 121,114 L 124,112 L 126,112 L 128,111
+L 134,105 L 134,103 L 135,102 L 135,49
+L 134,48 L 134,46 L 132,44 L 132,43
+L 126,39 L 124,39 L 119,36 L 117,36
+L 114,34 L 112,34 L 109,32 L 107,32
+L 104,30 L 102,30 Z" fill="url(#limeFill)" fill-rule="evenodd"/>
+  </svg>
+</svg>

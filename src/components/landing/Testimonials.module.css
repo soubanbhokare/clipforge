@@ -1,0 +1,15 @@
+/* Testimonial slots — a quiet grid inside the Social Proof section
+   (no section chrome of its own). Colours only from tokens. */
+
+.testimonialGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+}
+
+@media (max-width: 700px) {
+  .testimonialGrid {
+    grid-template-columns: 1fr;
+  }
+}
